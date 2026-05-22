@@ -1,81 +1,60 @@
 
-This guide explains how to make your compiler compatible with the **UP Compiler IntelliJ Plugin**.
+This repository contains the IntelliJ plugin and API required to connect your compiler to the UP Compiler Plugin.
+The repository does **not** include the instructor compiler source code.
+Students are expected to build and integrate their own:
 
-The plugin does **not** require you to use the same internal compiler structure as the example compiler. Your compiler may have its own lexer, parser, semantic analyzer, code generator, classes, packages, and algorithms.
+- Lexer
+- Parser
+- Semantic Analyzer
+- Code Generator
 
-The only requirement is that your project provides one public adapter class that implements the shared API interface:
+The plugin only requires a small compatibility layer through the provided API.
 
-```java
-javiergs.compiler.api.StudentCompiler
-```
 
-## Files Provided by the Instructor
+# What Is Included
 
-Share these files with students:
-
-```text
-UPCompilerPlugin.zip
-```
-
-The IntelliJ plugin package. Students install this in IntelliJ IDEA.
+The repository contains:
 
 ```text
 javiergs/compiler/api/
 ```
 
-The API package that student compilers must use. It contains:
+with:
 
 ```text
-StudentCompiler.java
-CompilerResult.java
 CompilerError.java
+CompilerResult.java
+StudentCompiler.java
 ```
 
-You may also share it as a small API JAR.
+These classes define the communication contract between the IntelliJ plugin and your compiler.
+
+
+# What Students Must Build
+
+Students must implement their own compiler project independently.
+
+Your compiler may have any internal structure you want.
+
+Example:
 
 ```text
-simple-compiler-1.0.0-obfuscated.jar
+my-compiler/
+├── lexer/
+├── parser/
+├── semantic/
+├── codegen/
+└── MyCompiler.java
 ```
 
-An example compatible compiler. This is only for testing the plugin. Students do not need to copy its internal structure.
 
-## What Your Compiler Must Do
+# Plugin Compatibility Requirement
 
-Your compiler must expose one class that implements:
+Your compiler must provide one public class implementing:
 
 ```java
-package javiergs.compiler.api;
-
-public interface StudentCompiler {
-    CompilerResult compile(String sourceCode) throws Exception;
-}
+javiergs.compiler.api.StudentCompiler
 ```
-
-The plugin calls:
-
-```java
-compile(sourceCode)
-```
-
-and your compiler returns a `CompilerResult`.
-
-## Step 1: Add the API Package
-
-Copy this package into your compiler project:
-
-```text
-src/main/java/javiergs/compiler/api/
-```
-
-Do not change the package name. It must remain:
-
-```java
-package javiergs.compiler.api;
-```
-
-## Step 2: Create Your Compiler Adapter Class
-
-Your compiler may have any internal structure, but it needs one adapter class.
 
 Example:
 
@@ -92,47 +71,91 @@ public class TeamCompiler implements StudentCompiler {
 
         CompilerResult result = new CompilerResult();
 
-        // 1. Run your lexer
-        // 2. Run your parser
-        // 3. Run semantic analysis
-        // 4. Run code generation
-        // 5. Store all outputs in CompilerResult
+        // Run lexer
+        // Run parser
+        // Run semantic analysis
+        // Run code generation
 
         return result;
     }
 }
 ```
 
-This class is the class name students will enter in the plugin settings.
+This class acts as the adapter between your compiler and the IntelliJ plugin.
 
-## Step 3: Return Tokens
 
-If your lexer produces tokens, store them in the result:
+# Step 1 – Copy the API Package
+
+Copy:
+
+```text
+javiergs/compiler/api/
+```
+
+into your compiler project:
+
+```text
+src/main/java/javiergs/compiler/api/
+```
+
+Do not rename the package.
+
+It must remain:
+
+```java
+package javiergs.compiler.api;
+```
+
+
+# Step 2 – Implement StudentCompiler
+
+Your compiler adapter class must:
+
+```text
+1. Implement StudentCompiler
+2. Provide a public no-argument constructor
+3. Return CompilerResult
+```
+
+Example:
+
+```java
+public class TeamCompiler implements StudentCompiler
+```
+
+---
+
+# Step 3 – Return Tokens
+
+If your lexer generates tokens, return them:
 
 ```java
 result.setTokens(tokens);
 ```
 
-Each token should provide at least:
+Each token should contain at least:
 
 ```text
-lexeme / word
+lexeme
 token type
 line number
 ```
 
-Example token display:
+Example:
 
 ```text
 x      IDENTIFIER    line 2
 =      OPERATOR      line 2
 10     INTEGER       line 2
-;      DELIMITER     line 2
 ```
 
-## Step 4: Return Syntax Errors
+---
 
-Syntax errors should be added as `CompilerError` objects:
+# Step 4 – Return Syntax Errors
+
+Syntax errors must be stored as `CompilerError` objects.
+
+Example:
 
 ```java
 result.getSyntaxErrors().add(
@@ -145,34 +168,35 @@ result.getSyntaxErrors().add(
 );
 ```
 
-Use column `0` if your compiler does not track columns.
 
-## Step 5: Return Semantic Errors
+# Step 5 – Return Semantic Errors
 
-Semantic errors should also be added as `CompilerError` objects:
+Semantic errors must also be stored as `CompilerError`.
+
+Example:
 
 ```java
 result.getSemanticErrors().add(
     new CompilerError(
         "Semantic",
-        "Line 4:[Semantic] variable <y> not found",
+        "Line 4:[Semantic] variable <x> not found",
         4,
         0
     )
 );
 ```
 
-Examples:
+Examples of semantic errors:
 
 ```text
-variable already defined
 variable not found
+variable already defined
 type mismatch
 expected boolean
-invalid assignment
 ```
 
-## Step 6: Return a Syntax Tree
+
+# Step 6 – Return a Syntax Tree
 
 The plugin supports syntax trees using:
 
@@ -183,28 +207,19 @@ javax.swing.tree.DefaultMutableTreeNode
 Example:
 
 ```java
-DefaultMutableTreeNode root = new DefaultMutableTreeNode("PROGRAM");
-DefaultMutableTreeNode body = new DefaultMutableTreeNode("BODY");
-root.add(body);
+DefaultMutableTreeNode root =
+    new DefaultMutableTreeNode("PROGRAM");
 
 result.setParserTree(root);
 ```
 
-If your parser does not generate a tree yet, return:
 
-```java
-result.setParserTree(
-    new DefaultMutableTreeNode("No syntax tree available")
-);
-```
+# Step 7 – Return Intermediate Code
 
-## Step 7: Return Generated Code
-
-If compilation succeeds, store your intermediate code or P-Code:
+If compilation succeeds:
 
 ```java
 result.setIntermediateCode(
-    "x, int, global, 0\n" +
     "@\n" +
     "LIT 10, 0\n" +
     "STO x, 0\n" +
@@ -212,15 +227,16 @@ result.setIntermediateCode(
 );
 ```
 
-If there are errors, return an empty string:
+If compilation fails:
 
 ```java
 result.setIntermediateCode("");
 ```
 
-The plugin opens a new editor tab with generated code only when there are no errors.
+The plugin opens generated code automatically when no syntax or semantic errors exist.
 
-## Step 8: Build Your Compiler JAR
+
+# Step 8 – Build Your Compiler JAR
 
 For Maven projects:
 
@@ -228,7 +244,7 @@ For Maven projects:
 mvn clean package
 ```
 
-The JAR will usually be created here:
+The generated JAR is usually located in:
 
 ```text
 target/
@@ -240,21 +256,18 @@ Example:
 target/team1-compiler-1.0.0.jar
 ```
 
-## Step 9: Configure the IntelliJ Plugin
 
-In IntelliJ IDEA:
+# Step 9 – Configure the Plugin
+
+Inside IntelliJ IDEA:
 
 ```text
 Settings → Tools → UP Compiler
 ```
 
-Set:
+Configure:
 
-```text
-Compiler JAR
-```
-
-to your generated JAR path.
+## Compiler JAR
 
 Example:
 
@@ -262,13 +275,9 @@ Example:
 /Users/student/Documents/team1-compiler/target/team1-compiler-1.0.0.jar
 ```
 
-Set:
+## Compiler Class
 
-```text
-Compiler Class
-```
-
-to the full adapter class name.
+Use the full class name.
 
 Example:
 
@@ -276,15 +285,12 @@ Example:
 team1.compiler.TeamCompiler
 ```
 
-## Step 10: Run Your Compiler
 
-Open a source file, for example:
+# Step 10 – Run the Compiler
 
-```text
-test.up
-```
+Open a source file.
 
-Example input:
+Example:
 
 ```text
 {
@@ -293,49 +299,22 @@ Example input:
 }
 ```
 
-Then run:
+Run:
 
 ```text
 Tools → Run Student Compiler
 ```
 
-The plugin will show:
+The plugin displays:
 
-```text
-Errors tab
-Tokens tab
-Syntax Tree tab
-```
+- Errors
+- Tokens
+- Syntax Tree
 
-If compilation succeeds, generated P-Code opens automatically in a new editor tab.
+If compilation succeeds, the generated intermediate code opens automatically in a new editor tab.
 
-## Important Rules
 
-Your compiler must:
-
-```text
-1. Include the API package.
-2. Provide one public class implementing StudentCompiler.
-3. Have a public no-argument constructor.
-4. Return a CompilerResult.
-5. Add errors as CompilerError objects.
-6. Build a JAR file.
-7. Use the correct full class name in the plugin settings.
-```
-
-Your compiler does not need to:
-
-```text
-1. Use the same lexer as the example.
-2. Use the same parser as the example.
-3. Use the same semantic analyzer.
-4. Use the same code generator.
-5. Use the same package structure internally.
-```
-
-Only the adapter class must follow the plugin API.
-
-## Minimal Compatible Compiler Example
+# Minimal Compatible Compiler
 
 ```java
 package my.compiler;
@@ -368,34 +347,13 @@ public class MyCompiler implements StudentCompiler {
 Plugin setting:
 
 ```text
-Compiler Class:
 my.compiler.MyCompiler
 ```
 
-## Recommended Project Structure
 
-```text
-team-compiler/
-├── pom.xml
-└── src/main/java/
-    ├── javiergs/compiler/api/
-    │   ├── StudentCompiler.java
-    │   ├── CompilerResult.java
-    │   └── CompilerError.java
-    │
-    └── team1/compiler/
-        ├── TeamCompiler.java
-        ├── lexer/
-        ├── parser/
-        ├── semantic/
-        └── codegen/
-```
+# Troubleshooting
 
-## Troubleshooting
-
-### The plugin says: class not found
-
-Use the full class name.
+## Class Not Found
 
 Incorrect:
 
@@ -409,53 +367,47 @@ Correct:
 team1.compiler.TeamCompiler
 ```
 
-### The plugin says: does not implement StudentCompiler
+---
 
-Your adapter class must include:
+## Does Not Implement StudentCompiler
+
+Your class must include:
 
 ```java
 implements StudentCompiler
 ```
 
-and must import:
+and import:
 
 ```java
 import javiergs.compiler.api.StudentCompiler;
 ```
 
-### The plugin does not show new changes
+---
 
-Rebuild your compiler JAR:
+## Changes Not Appearing
+
+Rebuild your JAR:
 
 ```bash
 mvn clean package
 ```
 
-Then run the plugin again. Usually you do not need to restart IntelliJ.
+Then run the plugin again.
 
-### The generated code does not open
+---
 
-Check the Errors tab. The plugin opens generated code only when there are no syntax or semantic errors.
+## Generated Code Does Not Open
 
-### The line number is -1
+Check the Errors tab.
 
-Create errors with the real line number:
+Generated code only opens when there are no syntax or semantic errors.
 
-```java
-new CompilerError("Syntax", message, lineNumber, 0)
-```
+---
 
-not:
+# Final Reminder
 
-```java
-new CompilerError("Syntax", message, -1, -1)
-```
-
-## Final Reminder
-
-Your compiler may be designed in any way you want.
-
-The plugin only needs this:
+The plugin only requires this:
 
 ```java
 public class YourCompiler implements StudentCompiler {
