@@ -1,8 +1,6 @@
 package javiergs.compiler.api;
 
 import javiergs.compiler.lexer.Token;
-import javiergs.compiler.semantic.SymbolTableItem;
-
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +20,7 @@ public class CompilerResult {
 
   private List<Token> tokens = new ArrayList<>();
   private DefaultMutableTreeNode parserTree;
-  private List<SymbolTableItem> symbolTable = new ArrayList<>();
+  private List<Object> symbolTable = new ArrayList<>();
   private String intermediateCode = "";
 
   public List<Token> getTokens() {
@@ -49,12 +47,16 @@ public class CompilerResult {
     this.semanticErrors = semanticErrors;
   }
 
-  public List<SymbolTableItem> getSymbolTable() {
+  public List<Object> getSymbolTable() {
+
     return symbolTable;
+
   }
 
-  public void setSymbolTable(List<SymbolTableItem> symbolTable) {
+  public void setSymbolTable(List<Object> symbolTable) {
+
     this.symbolTable = symbolTable;
+
   }
 
   public DefaultMutableTreeNode getParserTree() {
